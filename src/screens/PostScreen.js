@@ -1,0 +1,87 @@
+/**
+|--------------------------------------------------
+| Screen for a list of articles, each has comments in PostDetailScreen
+|--------------------------------------------------
+*/
+import React, { Component } from "react";
+import { FlatList } from "react-native";
+import { Subscribe } from "unstated";
+import PostStore from "alex_demo/src/stores/PostStore";
+import ScreenContainer from "alex_demo/src/components/ScreenContainer";
+import Post from "alex_demo/src/components/Post";
+import FriendStore from "alex_demo/src/stores/FriendStore";
+
+export default class PostScreenContainer extends Component {
+  render() {
+    return (
+      <Subscribe to={[PostStore, FriendStore]}>
+        {(postStore, friendStore) => (
+          <PostScreen
+            postStore={postStore}
+            friendStore={friendStore}
+            {...this.props}
+          />
+        )}
+      </Subscribe>
+    );
+  }
+}
+
+class PostScreen extends Component {
+  componentDidMount() {
+    const { postStore } = this.props;
+    postStore.loadPostList();
+  }
+
+  // Navigation to Postdetail when pressed on the comment button
+  onCommentPress = postId => {
+    const {
+      navigation: { navigate },
+      postStore
+    } = this.props;
+    postStore.setCurrentPost(postId);
+    navigate("PostDetail", { postId });
+  };
+
+  // Renders a post in the Flatlist
+  renderItem = ({ item }) => {
+    const {
+      friendStore: {
+        state: { friendMap }
+      }
+    } = this.props;
+    const userItem = friendMap[item.userId];
+
+    let userName, userCompany, userCompanyCatchPhrase;
+    if (userItem) {
+      userName = userItem.username;
+      userCompany = userItem.company.name;
+      userCompanyCatchPhrase = userItem.company.catchPhrase;
+    }
+    return (
+      <Post
+        postId={item.id}
+        title={item.title}
+        desc={item.body}
+        userName={userName}
+        userCompany={userCompany}
+        userCompanyCatchPhrase={userCompanyCatchPhrase}
+        onCommentPress={this.onCommentPress}
+      />
+    );
+  };
+
+  render() {
+    const { postStore } = this.props;
+    return (
+      <ScreenContainer title={"Posts"}>
+        <FlatList
+          data={postStore.state.posts}
+          renderItem={this.renderItem}
+          style={{ marginTop: 10 }}
+          keyExtractor={(item, index) => index.toString()}
+        />
+      </ScreenContainer>
+    );
+  }
+}
